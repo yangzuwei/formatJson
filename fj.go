@@ -9,19 +9,32 @@ import (
 	"github.com/sipt/GoJsoner"
 )
 
+var h bool
+
 const help = `
-本命令行只支持一个参数 这个参数必须是合法文件名
+本命令行只支持单个参数 这个参数必须是合法文件名
 `
+
+func init() {
+	flag.BoolVar(&h, "h", false, "this help")
+	flag.Usage = usage
+}
+
+func usage() {
+	//只有输入 -h 才可以被展示
+	if h {
+		fmt.Fprintf(os.Stderr, `帮助说明:`+help)
+		flag.PrintDefaults()
+	}
+}
 
 func main() {
 	var originSourceFileName string
-
-	flag.Usage = func() {
-		fmt.Println(help)
-	}
+	flag.Parse()
+	flag.Usage()
 
 	if len(os.Args) == 1 {
-		fmt.Println("请输入文件名")
+		fmt.Println("请输入文件名,仅支持单个")
 		return
 	}
 
@@ -32,6 +45,7 @@ func main() {
 	//非法文件或者不存在的文件
 	if fileError != nil {
 		fmt.Print(fileError)
+		return
 	}
 
 	content := string(contentBytes)
