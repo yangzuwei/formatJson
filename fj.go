@@ -76,7 +76,7 @@ func remoteInvalidComma(result string) []byte {
 	newContentBytes = []byte(result)
 	for po, ch := range newContentBytes {
 		if ch == ',' && inArray(newContentBytes[po+1], symbol) {
-			newContentBytes[po] = 0
+			newContentBytes = append(newContentBytes[:po], newContentBytes[po+1:]...)
 		}
 	}
 	return newContentBytes
@@ -85,6 +85,73 @@ func remoteInvalidComma(result string) []byte {
 //校验右侧符号
 func inArray(needle byte, array [2]byte) bool {
 	for _, item := range array {
+		if item == needle {
+			return true
+		}
+	}
+	return false
+}
+
+var keySymbol []byte = []byte{'[', '{', '}', ']', '"', ',', '\n'}
+
+//去掉空格
+func removeSpace(content []byte) []byte {
+	var result []byte
+	var canAppendSpace byte
+	for _, singleChar := range content {
+		if singleChar == '"' {
+			canAppendSpace = canAppendSpace ^ 1
+		}
+		if canAppendSpace == 0 && singleChar == ' ' || singleChar == '\t' {
+			continue
+		}
+		result = append(result, singleChar)
+	}
+	return result
+}
+
+//去掉注释 和 换行符
+func removeComments(content []byte) []byte {
+	var result []byte
+	start := 0
+	end := 0
+	last := 0
+	for index, singleChar := range content {
+
+		//正常末尾注释
+		if index > 0 && inKeySymbol(content[index-1]) && singleChar == '/' {
+			end = index
+			result = append(result, content[start:end]...)
+		}
+		//单行注释 以及空行情况
+		if singleChar == '\n' {
+			last = start
+			start = index
+			// 本行无注释 两个 \n 中间不存在正常末尾注释的情况
+			if end <= last {
+				result = append(result, content[last:start]...)
+			}
+		}
+	}
+
+	//去掉换行符
+	for index, line := range result {
+		if line == '\n' {
+			result = append(result[:index], result[index+1:]...)
+		}
+	}
+
+	//拼接尾字符
+	result = append(result, content[len(content)-1])
+
+	if start == 0 {
+		result = content
+	}
+	return result
+}
+
+func inKeySymbol(needle byte) bool {
+	for _, item := range keySymbol {
 		if item == needle {
 			return true
 		}
