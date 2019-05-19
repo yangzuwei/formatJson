@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
-	"github.com/sipt/GoJsoner"
+	"github.com/atotto/clipboard"
+	//"github.com/sipt/GoJsoner"
 )
 
 var h bool
@@ -33,36 +35,37 @@ func main() {
 	flag.Parse()
 	flag.Usage()
 
-	if len(os.Args) == 1 {
-		fmt.Println("请输入文件名,仅支持单个")
-		return
+	time.Now()
+	//if len(os.Args) == 1 {
+	//	fmt.Println("请输入文件名,仅支持单个")
+	//	return
+	//}
+	var content string
+
+	if len(os.Args) > 1 {
+		originSourceFileName = os.Args[1]
+		contentBytes, _ := ioutil.ReadFile(originSourceFileName)
+		content = string(contentBytes)
+	} else {
+		//非法文件或者不存在的文件 就去读取剪切板
+		content, _ = clipboard.ReadAll()
 	}
-
-	originSourceFileName = os.Args[1]
-
-	contentBytes, fileError := ioutil.ReadFile(originSourceFileName)
-
-	//非法文件或者不存在的文件
-	if fileError != nil {
-		fmt.Print(fileError)
-		return
-	}
-
-	content := string(contentBytes)
 
 	//借用外部包删除注释
-	result, err := GoJsoner.Discard(content)
+	//result, err := GoJsoner.Discard(content)
 
-	newContentBytes := remoteInvalidComma(result)
+	var first = removeSpace([]byte(content)) //fmt.Println(first)
+
+	result := removeComments(first)
+
+	newContentBytes := remoteInvalidComma(string(result))
 
 	//输出结果到新文件
-	ioutil.WriteFile("json_"+originSourceFileName, newContentBytes, 0777)
+	//ioutil.WriteFile("json_"+originSourceFileName, newContentBytes, 0777)
 
 	//打印结果
 	fmt.Println(string(newContentBytes))
-	if err != nil {
-		fmt.Println(err)
-	}
+
 }
 
 //删除不合文法的末尾逗号 使之符合正确的json格式
